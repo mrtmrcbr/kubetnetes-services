@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: mrtmr/nodejs-demo:~v1
+    notifications.argoproj.io/subscribe.on-deployed.slack: alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: alerts
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: alerts
+  finalizers:
+    - resource-finalizer.argocd.argoproj.io
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/mrtmrcbr/kubetnetes-services
+    targetRevision: master
+    path: demo-app-chart
+    helm:
+      parameters:
+        - name: "replicaCount"
+          value: "2"
+        - name: "image.repository"
+          value: "mrtmr/nodejs-demo"
+        - name: "image.tag"
+          value: v1.0
+
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: myapp-namespace
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - Validate=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
